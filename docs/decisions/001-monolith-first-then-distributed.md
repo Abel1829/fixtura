@@ -12,8 +12,6 @@ I want to build Fixtura as two architectures that solve the same problem, so tha
 - a **monolith**, which is one program that contains all the rules and uses one database;
 - a **distributed version**, which is several programs that run separately and communicate through messages.
 
-My constraints are fixed. I work alone, about two hours a day, and the first complete version is due on 30 December 2026. That is roughly 70 hours in total, and the frontend (React) is new to me. Any decision has to fit inside this budget.
-
 ## 2. Decision
 
 I build Fixtura in two stages.
