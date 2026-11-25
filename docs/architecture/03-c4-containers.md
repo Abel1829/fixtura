@@ -125,7 +125,7 @@ The web application and the database are the same as in the monolith. The applic
 
 ## 5. Deployment
 
-Every container runs as a Docker container and the whole system starts with Docker Compose, which is a tool that starts several containers together from one file. The application listens on port 8081, because port 8080 is already used by another program on my computer. The database is available on port 5433 of my computer.
+Every container runs as a Docker container and the whole system starts with Docker Compose, which is a tool that starts several containers together from one file. The application listens on port 8081, because port 8080 is already used by another program on my computer. The database is available on port 5434 of my computer.
 
 ## 6. Related documents
 
