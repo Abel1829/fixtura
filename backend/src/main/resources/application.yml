@@ -1,0 +1,22 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: fixtura-backend
+  datasource:
+    url: jdbc:postgresql://localhost:5434/fixtura
+    username: fixtura
+    password: ${DB_PASSWORD:fixtura_dev}
+  jpa:
+    hibernate:
+      ddl-auto: none
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
