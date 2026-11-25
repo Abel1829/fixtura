@@ -1,6 +1,7 @@
 # Architecture characteristics of Fixtura
 
 Author: Abel Zewdie Menkir
+
 Last updated: 25 November 2026
 
 ## 1. Purpose of this document
