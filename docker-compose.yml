@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16
+    container_name: fixtura-db
+    environment:
+      POSTGRES_DB: fixtura
+      POSTGRES_USER: fixtura
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-fixtura_dev}
+    ports:
+      - "5434:5432"
+    volumes:
+      - fixtura-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fixtura -d fixtura"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  fixtura-db-data:
