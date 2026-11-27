@@ -1,7 +1,6 @@
 # C4 level 1: system context
 
-Author: Abel Zewdie Menkir
-
+Author: the Fixtura developer
 Last updated: 25 November 2026
 
 ## 1. Purpose of this document
@@ -21,17 +20,17 @@ This document is level 1. It shows what Fixtura is and who uses it, and it does 
 C4Context
   title System context diagram for Fixtura
 
-  Person(organizer, "Organizer", "Creates tournaments, adds pitches, teams and referees, and generates the schedule")
-  Person(referee, "Referee", "Records match events and confirms the final result")
-  Person(manager, "Team manager", "Manages the players of one team and chooses the line-up for each match")
-  Person(spectator, "Spectator", "Follows matches, results, standings and news without logging in")
+  Person(organizer, "Organizer", "Runs the tournament: creates tournaments, pitches and teams, and generates the schedule or the knockout bracket")
+  Person(referee, "Referee", "Records match events live and ends the match")
+  Person(manager, "Team manager", "Manages the players of one team and follows its matches")
+  Person(spectator, "Spectator", "Follows matches, results, standings and brackets without logging in")
 
   System(fixtura, "Fixtura", "Manages football tournaments: schedule, results, standings and public pages")
 
   Rel(organizer, fixtura, "Sets up and runs tournaments", "HTTPS")
-  Rel(referee, fixtura, "Records events and results", "HTTPS")
-  Rel(manager, fixtura, "Manages players and line-ups", "HTTPS")
-  Rel(spectator, fixtura, "Reads matches, standings and news", "HTTPS")
+  Rel(referee, fixtura, "Records events live and ends matches", "HTTPS")
+  Rel(manager, fixtura, "Manages the players of one team", "HTTPS")
+  Rel(spectator, fixtura, "Reads matches, standings and brackets", "HTTPS")
 ```
 
 ## 3. Elements
@@ -40,10 +39,10 @@ C4Context
 
 | Element | Has an account | What the person does |
 |---|---|---|
-| Organizer | Yes | Creates and edits tournaments and pitches, adds teams, referees and team managers, generates the league or knockout schedule, and sees only their own tournaments. |
-| Referee | Yes | Records the events of the matches assigned to them (goals, cards, substitutions) and confirms the final result. |
-| Team manager | Yes | Manages the players of their own team, registers the team for a tournament and chooses the line-up for each match. |
-| Spectator | No | Reads public matches, results, standings and news. A spectator is anonymous and cannot change anything. |
+| Organizer | Yes | Creates and edits tournaments and pitches, adds teams, players, referees and team managers, generates the league schedule or the knockout bracket, and sees only their own tournaments. The organizer does not take part in the results. |
+| Referee | Yes | Records the events of the matches assigned to them (goals, cards, substitutions) live and ends the match, which makes the result final. |
+| Team manager | Yes | Manages the players of their own team and follows its matches and results. A team manager cannot see or change any other team. |
+| Spectator | No | Reads public matches, results, standings and brackets. A spectator is anonymous and cannot change anything. |
 
 ### 3.2 The system
 
@@ -56,9 +55,9 @@ Every person reaches Fixtura through a web browser, over HTTPS. HTTPS is the sec
 | From | To | Purpose |
 |---|---|---|
 | Organizer | Fixtura | Sets up and runs tournaments |
-| Referee | Fixtura | Records events and results |
-| Team manager | Fixtura | Manages players and line-ups |
-| Spectator | Fixtura | Reads matches, standings and news |
+| Referee | Fixtura | Records events live and ends matches |
+| Team manager | Fixtura | Manages the players of one team |
+| Spectator | Fixtura | Reads matches, standings and brackets |
 
 The arrows point from the person to the system because the person starts every interaction. Fixtura never contacts people on its own in the first version.
 
@@ -79,4 +78,4 @@ This diagram is the same for both architectures of Fixtura. The monolith and the
 ## 7. Related documents
 
 - `docs/architecture/01-architecture-characteristics.md`: the requirements and the ranked characteristics.
-- `docs/decisions/001-monolith-first-then-distributed.md`: why, there are two architectures.
+- `docs/decisions/001-monolith-first-then-distributed.md`: why there are two architectures.
