@@ -1,11 +1,11 @@
 # Fixtura
 
-Fixtura is a full-stack tournament management system for football. Organizers create tournaments and generate the match schedule, referees record what happens in each match, team managers manage their players and line-ups, and spectators follow scores, standings and news on a public website without logging in.
+Fixtura is a full-stack tournament management system for football, built for a local tournament organizer. Organizers create tournaments in a league or knockout format and generate the match schedule, referees record what happens in each match, team managers look after the players of their team, and spectators follow scores, tables and brackets on a public website without logging in.
 
 I am building Fixtura as two architectures that solve the same problem, so that I can compare them:
 
 1. **A monolith**: one Spring Boot application with one PostgreSQL database and a React website.
-2. **A distributed version**: the same system, with the processing that happens after a match result is confirmed moved into a separate worker program. The application and the worker communicate through RabbitMQ and an Apache Camel route.
+2. **A distributed version**: the same system, with the processing that happens after a match is finished moved into a separate worker program. The application and the worker communicate through RabbitMQ and an Apache Camel route.
 
 The reasons for this choice are written down in [decision record 001](docs/decisions/001-monolith-first-then-distributed.md).
 
@@ -106,3 +106,4 @@ docker compose stop
 | [C4 containers](docs/architecture/03-c4-containers.md) | The containers of the monolith and of the distributed version |
 | [Domain model](docs/architecture/04-domain-model.md) | The entities, their relationships and the rules of the system |
 | [Decision record 001](docs/decisions/001-monolith-first-then-distributed.md) | Why there are two architectures |
+| [Decision record 002](docs/decisions/002-scope-local-tournament.md) | Why the scope is a local tournament |
