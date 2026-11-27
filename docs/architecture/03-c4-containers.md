@@ -1,7 +1,6 @@
 # C4 level 2: containers
 
-Author: Abel Zewdie Menkir
-
+Author: the Fixtura developer
 Last updated: 25 November 2026
 
 ## 1. Purpose of this document
@@ -26,7 +25,7 @@ C4Container
   System_Boundary(fixtura, "Fixtura (monolith)") {
     Container(web, "Web application", "React, Vite, nginx", "Shows the screens for all four kinds of users in the browser")
     Container(api, "Application", "Java 21, Spring Boot", "Holds all the rules, the permissions and the REST interface")
-    ContainerDb(db, "Database", "PostgreSQL 16", "Stores tournaments, pitches, teams, players, matches, events, standings, news and the audit log")
+    ContainerDb(db, "Database", "PostgreSQL 16", "Stores tournaments, pitches, teams, players, matches, events, standings and the audit log")
   }
 
   Rel(organizer, web, "Uses", "HTTPS")
@@ -55,9 +54,9 @@ C4Container
 
 ### 2.3 Why this is a monolith
 
-The application is one program. When a referee confirms a result, the application saves the result, recalculates the standings and writes the audit entry inside one database transaction. Either all three happen or none does. This is the reason the monolith protects my first characteristic, data consistency, in the simplest possible way.
+The application is one program. When a referee ends a match, the application saves the final result, recalculates the standings, advances the knockout bracket and writes the audit entry inside one database transaction. Either all of these steps happen or none does. This is the reason the monolith protects my first characteristic, data consistency, in the simplest possible way.
 
-Inside the application the code is divided into modules: identity and access, pitches, teams and players, tournaments and draw, matches and results, standings, news and audit. They are not separate containers. A module is a group of code in the same program, and it talks to the other modules only through small public interfaces.
+Inside the application the code is divided into modules: identity and access, pitches, teams and players, tournaments and draw, matches and results, standings and audit. They are not separate containers. A module is a group of code in the same program, and it talks to the other modules only through small public interfaces.
 
 ## 3. Architecture 2: the distributed version
 
@@ -73,8 +72,8 @@ C4Container
   System_Boundary(fixtura, "Fixtura (distributed)") {
     Container(web, "Web application", "React, Vite, nginx", "Shows the screens for all four kinds of users in the browser")
     Container(api, "Application", "Java 21, Spring Boot", "Holds the rules for tournaments, matches and results, the permissions and the REST interface")
-    ContainerQueue(broker, "Message broker", "RabbitMQ", "Holds match finished messages until the worker takes them")
-    Container(worker, "Standings worker", "Java 21, Spring Boot, Apache Camel", "Recalculates the standings and writes the audit record when a match is finished")
+    ContainerQueue(broker, "Message broker", "RabbitMQ", "Holds match result changed messages until the worker takes them")
+    Container(worker, "Results worker", "Java 21, Spring Boot, Apache Camel", "Recalculates the standings, advances the knockout bracket and writes the audit record when a match is finished")
     ContainerDb(db, "Database", "PostgreSQL 16", "Stores all data. The worker writes only to its own tables")
   }
 
@@ -84,8 +83,8 @@ C4Container
   Rel(spectator, web, "Uses", "HTTPS")
   Rel(web, api, "Sends requests to", "JSON over HTTPS")
   Rel(api, db, "Reads and writes", "SQL")
-  Rel(api, broker, "Publishes match finished messages", "AMQP")
-  Rel(worker, broker, "Consumes match finished messages", "AMQP")
+  Rel(api, broker, "Publishes match result changed messages", "AMQP")
+  Rel(worker, broker, "Consumes match result changed messages", "AMQP")
   Rel(worker, db, "Writes standings and audit records", "SQL")
 ```
 
@@ -94,21 +93,24 @@ C4Container
 | Container | Technology | Responsibility |
 |---|---|---|
 | Message broker | RabbitMQ | A post office between programs. One program leaves a message, and another program picks it up when it is ready. A message waits in the broker until it is taken, so it is not lost if the receiver is stopped. |
-| Standings worker | Java 21, Spring Boot, Apache Camel | A separate program with no web interface. It receives a message for every finished match, recalculates the standings and writes the audit record. Apache Camel is the library that defines the route a message follows: from the queue, to the calculation, to the database. |
+| Results worker | Java 21, Spring Boot, Apache Camel | A separate program with no web interface. It receives a message whenever a match is finished, recalculates the standings, advances the knockout bracket and writes the audit record. Apache Camel is the library that defines the route a message follows: from the queue, to the calculation, to the database. |
 
 The web application and the database are the same as in the monolith. The application is smaller: it no longer calculates the standings itself, and it publishes a message instead. The public pages still read the standings through the application.
 
-### 3.2 What happens when a match is finished
+### 3.2 What happens during and after a match
 
-1. The referee confirms the final result in the web application.
-2. The application checks the permissions and the rules, and saves the result in the database.
-3. The application publishes a "match finished" message to the broker. AMQP is the protocol that RabbitMQ uses.
-4. The worker takes the message from the broker, recalculates the standings and writes the audit record.
-5. From then on the public pages show the new table.
+1. While the match is played, the referee records each event (a goal, a card, a substitution) in the web application. The application saves every event at once, and spectators see it on the public page within seconds.
+2. At full time, the referee ends the match in the web application.
+3. The application checks the permissions and the rules, and saves the final result in the database. The match is now finished.
+4. The application publishes a "match result changed" message to the broker. AMQP is the protocol that RabbitMQ uses.
+5. The worker takes the message from the broker, recalculates the standings from all finished matches, moves the winner of a knockout match into the next round, and writes the audit record.
+6. From then on the public pages show the new table.
+
+The worker recalculates the standings from all finished matches every time, so a message that arrives twice gives the same table.
 
 ### 3.3 What this changes
 
-- **Consistency.** The result is saved before the message is sent, so a confirmed result is never lost. The standings are updated a moment later. For a short time the result exists and the table does not include it yet.
+- **Consistency.** The result is saved before the message is sent, so a finished result is never lost. The standings are updated a moment later. For a short time the result exists and the table does not include it yet.
 - **Failure of the worker.** If the worker is stopped, the application keeps working and the messages wait in the broker. When the worker starts again, it processes them and the table catches up.
 - **Repeated messages.** A message can be delivered twice. The calculation of the standings is written so that running it twice gives the same table.
 - **More to run.** Five containers start instead of three.
@@ -117,7 +119,7 @@ The web application and the database are the same as in the monolith. The applic
 
 | Point | Monolith | Distributed version |
 |---|---|---|
-| Containers | 3: web application, application, database | 5: web application, application, message broker, standings worker, database |
+| Containers | 3: web application, application, database | 5: web application, application, message broker, results worker, database |
 | Where the standings are calculated | Inside the application, in the same transaction as the result | In the worker, after the result is saved |
 | Table after a result | Correct immediately | Correct a moment later |
 | If the standings calculation fails | The whole transaction is undone, and the result is not saved | The result stays saved and the message is processed again |
@@ -125,10 +127,10 @@ The web application and the database are the same as in the monolith. The applic
 
 ## 5. Deployment
 
-Every container runs as a Docker container and the whole system starts with Docker Compose, which is a tool that starts several containers together from one file. The application listens on port 8081, because port 8080 is already used by another program on my computer. The database is available on port 5434 of my computer.
+Every container runs as a Docker container and the whole system starts with Docker Compose, which is a tool that starts several containers together from one file. The application listens on port 8081, because port 8080 is already used by another program on my computer. The database is available on port 5434 of my computer, because port 5433 is already used by another program.
 
 ## 6. Related documents
 
 - `docs/architecture/01-architecture-characteristics.md`: the ranked characteristics.
 - `docs/architecture/02-c4-context.md`: the system and its users.
-- `docs/decisions/001-monolith-first-then-distributed.md`: why, there are two architectures.
+- `docs/decisions/001-monolith-first-then-distributed.md`: why there are two architectures.
